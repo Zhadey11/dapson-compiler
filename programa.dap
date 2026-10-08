@@ -1,0 +1,36 @@
+// Programa de demostracion del lenguaje Dapson
+
+// Declaracion de variables (sea nombre: tipo = valor;)
+sea edad: entero = 20;
+sea promedio: decimal = 8.75;
+sea nombre: texto = "Jay";
+sea inicial: caracter = 'J';
+sea activo: booleano = verdadero;
+
+// Declaracion de constante (no se puede cambiar despues)
+fijo pi: decimal = 3.1416;
+
+imprimir nombre;
+imprimir edad;
+
+// Asignacion (nombre = nuevo valor;)
+edad = 21;
+activo = falso;
+imprimir edad;
+imprimir activo;
+
+// Operaciones con precedencia y parentesis
+sea total: entero = 6 * 7;
+sea resta: entero = 10 - 2 * 3;
+sea grupo: entero = (10 - 2) * 3;
+sea mitad: decimal = promedio / 2;
+sea area: decimal = pi * 5 * 5;
+sea negativo: entero = -5;
+
+imprimir total;
+imprimir resta;
+imprimir grupo;
+imprimir mitad;
+imprimir area;
+imprimir negativo;
+imprimir "Fin del programa";

@@ -1,0 +1,12 @@
+// Programa con errores semanticos a proposito, para la demostracion
+
+sea x: entero = 10;
+sea x: entero = 5;              // error: x ya fue declarada
+fijo pi: decimal = 3.14;
+pi = 3.5;                       // error: no se puede reasignar una constante
+sea nombre: texto = 25;         // error: un entero no cabe en un texto
+y = 5;                          // error: y no fue declarada
+sea z: entero = nombre + 1;     // error: texto no es numerico
+sea w: entero = 8 / 0;          // error: division entre cero
+sea d: entero = 2.5;            // error: un decimal no cabe en un entero
+imprimir noExiste;              // error: noExiste no fue declarada
