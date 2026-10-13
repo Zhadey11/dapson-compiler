@@ -2,14 +2,17 @@ CC        := gcc
 FLEX      := flex
 BISON     := bison
 
+SRC_DIR   := src
+INC_DIR   := include
+EX_DIR    := examples
 BUILD_DIR := build
-CFLAGS    := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L -O2 -I. -I$(BUILD_DIR)
+CFLAGS    := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L -O2 -I$(INC_DIR) -I$(BUILD_DIR)
 LDFLAGS   :=
 
 TARGET    := dapson
-HEADERS   := ast.h symbol_table.h semantic.h runtime.h string_utils.h lexer.h
-LEX_SRC   := lexer.l
-YACC_SRC  := parser.y
+HEADERS   := $(wildcard $(INC_DIR)/*.h)
+LEX_SRC   := $(SRC_DIR)/lexer.l
+YACC_SRC  := $(SRC_DIR)/parser.y
 
 # Archivos generados por Bison y Flex
 BISON_C   := $(BUILD_DIR)/parser.tab.c
@@ -33,8 +36,8 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) $(LDFLAGS) -o $@
 
-# Archivos C normales
-$(BUILD_DIR)/%.o: %.c $(HEADERS) | $(BUILD_DIR)
+# Archivos C normales (src/*.c)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Bison: parser.y -> parser.tab.c / parser.tab.h
@@ -56,23 +59,23 @@ $(BUILD_DIR):
 
 # make run     -> ejecuta el programa de ejemplo
 run: $(TARGET)
-	./$(TARGET) programa.dap
+	./$(TARGET) $(EX_DIR)/programa.dap
 
 # make debug   -> igual, mostrando AST, tabla del AST y tabla de simbolos
 debug: $(TARGET)
-	./$(TARGET) -d programa.dap
+	./$(TARGET) -d $(EX_DIR)/programa.dap
 
 # make errores -> programa con errores semanticos a proposito
 errores: $(TARGET)
-	./$(TARGET) errores.dap
+	./$(TARGET) $(EX_DIR)/errores.dap
 
 # make funciones -> programa de ejemplo con funciones
 funciones: $(TARGET)
-	./$(TARGET) funciones.dap
+	./$(TARGET) $(EX_DIR)/funciones.dap
 
 # make errores-funciones -> errores semanticos de funciones a proposito
 errores-funciones: $(TARGET)
-	./$(TARGET) errores_funciones.dap
+	./$(TARGET) $(EX_DIR)/errores_funciones.dap
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
