@@ -10,6 +10,22 @@ void yyerror(const char *s);
 
 ASTNode *ast_root = NULL; /* raiz del AST, la lee main.c */
 int syntax_errors = 0;    /* cantidad de errores sintacticos */
+
+/* Agrega "node" al final de una lista enlazada (con next). Tolera NULL. */
+static ASTNode *append_node(ASTNode *list, ASTNode *node) {
+    if (node == NULL) {
+        return list;
+    }
+    if (list == NULL) {
+        return node;
+    }
+    ASTNode *cur = list;
+    while (cur->next != NULL) {
+        cur = cur->next;
+    }
+    cur->next = node;
+    return list;
+}
 %}
 
 %locations
@@ -28,6 +44,9 @@ int syntax_errors = 0;    /* cantidad de errores sintacticos */
 %token TOKEN_SEA "sea"
 %token TOKEN_FIJO "fijo"
 %token TOKEN_IMPRIMIR "imprimir"
+%token TOKEN_FUNCION "funcion"
+%token TOKEN_RETORNAR "retornar"
+%token TOKEN_NADA "nada"
 %token <str_val> TOKEN_TYPE "tipo de dato"
 %token <str_val> TOKEN_IDENTIFIER "identificador"
 %token <str_val> TOKEN_STRING_LITERAL "texto"
@@ -41,7 +60,10 @@ int syntax_errors = 0;    /* cantidad de errores sintacticos */
 %left '*' '/'
 %right UMINUS
 
-%type <node> statement_list statement expression
+%type <node> item_list item function_def
+%type <node> statement_list statement_list_opt statement expression
+%type <node> param_list param_list_opt param arg_list arg_list_opt
+%type <int_val> return_type
 
 /* Si el parser descarta un valor (por un error), se libera la memoria */
 %destructor { free($$); } <str_val>
@@ -53,8 +75,86 @@ program:
     /* vacio */ {
         ast_root = NULL;
     }
-    | statement_list {
+    | item_list {
         ast_root = $1;
+    }
+    ;
+
+/* Nivel superior: sentencias y definiciones de funciones */
+item_list:
+    item {
+        $$ = $1;
+    }
+    | item_list item {
+        $$ = append_node($1, $2);
+    }
+    ;
+
+item:
+    statement {
+        $$ = $1;
+    }
+    | function_def {
+        $$ = $1;
+    }
+    ;
+
+/* Regla 3: funciones     funcion nombre(a: tipo, b: tipo): tipo { ... } */
+function_def:
+    TOKEN_FUNCION TOKEN_IDENTIFIER '(' param_list_opt ')' return_type
+    '{' statement_list_opt '}' {
+        $$ = create_func_node($2, $4, (DataType)$6, $8, @1.first_line);
+        free($2);
+    }
+    ;
+
+/* ": nada" (o sin nada) = la funcion no devuelve un valor */
+return_type:
+    /* vacio */ {
+        $$ = TYPE_NADA;
+    }
+    | ':' TOKEN_NADA {
+        $$ = TYPE_NADA;
+    }
+    | ':' TOKEN_TYPE {
+        $$ = parse_type_name($2);
+        free($2);
+    }
+    ;
+
+param_list_opt:
+    /* vacio */ {
+        $$ = NULL;
+    }
+    | param_list {
+        $$ = $1;
+    }
+    ;
+
+param_list:
+    param {
+        $$ = $1;
+    }
+    | param_list ',' param {
+        $$ = append_node($1, $3);
+    }
+    ;
+
+param:
+    TOKEN_IDENTIFIER ':' TOKEN_TYPE {
+        $$ = create_param_node($1, parse_type_name($3), @1.first_line);
+        free($1);
+        free($3);
+    }
+    ;
+
+/* Sentencias (dentro de una funcion no se pueden definir otras funciones) */
+statement_list_opt:
+    /* vacio */ {
+        $$ = NULL;
+    }
+    | statement_list {
+        $$ = $1;
     }
     ;
 
@@ -63,18 +163,7 @@ statement_list:
         $$ = $1;
     }
     | statement_list statement {
-        if ($2 == NULL) {
-            $$ = $1;
-        } else if ($1 == NULL) {
-            $$ = $2;
-        } else {
-            ASTNode *cur = $1;
-            while (cur->next != NULL) {
-                cur = cur->next;
-            }
-            cur->next = $2;
-            $$ = $1;
-        }
+        $$ = append_node($1, $2);
     }
     ;
 
@@ -100,10 +189,40 @@ statement:
     | TOKEN_IMPRIMIR expression ';' {
         $$ = create_print_node($2, @1.first_line);
     }
+    /* Llamada a una funcion como sentencia    nombre(argumentos); */
+    | TOKEN_IDENTIFIER '(' arg_list_opt ')' ';' {
+        $$ = create_call_node($1, $3, @1.first_line);
+        free($1);
+    }
+    /* Retorno de una funcion                  retornar expresion; */
+    | TOKEN_RETORNAR expression ';' {
+        $$ = create_return_node($2, @1.first_line);
+    }
+    | TOKEN_RETORNAR ';' {
+        $$ = create_return_node(NULL, @1.first_line);
+    }
     /* Recuperacion de errores: se salta hasta el proximo ';' */
     | error ';' {
         yyerrok;
         $$ = NULL;
+    }
+    ;
+
+arg_list_opt:
+    /* vacio */ {
+        $$ = NULL;
+    }
+    | arg_list {
+        $$ = $1;
+    }
+    ;
+
+arg_list:
+    expression {
+        $$ = $1;
+    }
+    | arg_list ',' expression {
+        $$ = append_node($1, $3);
     }
     ;
 
@@ -126,6 +245,10 @@ expression:
     }
     | TOKEN_IDENTIFIER {
         $$ = create_identifier_node($1, @1.first_line);
+        free($1);
+    }
+    | TOKEN_IDENTIFIER '(' arg_list_opt ')' {
+        $$ = create_call_node($1, $3, @1.first_line);
         free($1);
     }
     | '(' expression ')' {

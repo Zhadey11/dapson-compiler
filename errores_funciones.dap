@@ -1,0 +1,37 @@
+// Errores semanticos de funciones, a proposito, para la demostracion
+
+funcion sumar(a: entero, b: entero): entero {
+  retornar a + b;
+}
+
+funcion sumar(x: entero): entero {   // error: la funcion sumar ya existe
+  retornar x;
+}
+
+funcion saludar() {
+  imprimir "hola";
+}
+
+sea r: entero = sumar(1);            // error: espera 2 argumentos
+sea s: entero = sumar(1, "dos");     // error: un texto no es un entero
+sea t: entero = saludar();           // error: saludar no devuelve nada
+sea u: entero = noExiste(5);         // error: la funcion no existe
+
+funcion sinRetorno(): entero {       // error: debe retornar un entero
+  imprimir "olvide el retornar";
+}
+
+funcion tipoMalo(): entero {
+  retornar "texto";                  // error: retorna texto en vez de entero
+}
+
+funcion repetido(a: entero, a: entero) {   // error: parametro repetido
+  imprimir a;
+}
+
+funcion soloLocal() {
+  sea oculta: entero = 1;
+}
+imprimir oculta;                     // error: oculta es local de soloLocal
+
+retornar 5;                          // error: retornar fuera de una funcion

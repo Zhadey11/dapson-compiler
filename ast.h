@@ -66,6 +66,19 @@ typedef struct ASTNode {
       struct ASTNode *left;
       struct ASTNode *right; /* NULL en el menos unario */
     } binary;
+    struct {
+      char *name;  /* nombre de la funcion */
+      struct ASTNode *params; /* lista de parametros */
+      DataType returnType;      /* Si no devuelve nada */
+      struct ASTNode *body;     /* sentencias del cuerpo */
+    } func;
+    struct {
+     char *name;            /* función que se llama */
+      struct ASTNode *args;  /* argumentos (enlazados con next) */
+    } call;
+    struct {
+      struct ASTNode *value; /* NULL en "retornar;" */
+    } ret;
   } data;
 
   struct ASTNode *next; /* lista enlazada de sentencias */
@@ -84,6 +97,11 @@ ASTNode *create_decl_node(NodeType kind, const char *name, DataType type,
                           ASTNode *init, int line);
 ASTNode *create_assign_node(const char *name, ASTNode *value, int line);
 ASTNode *create_print_node(ASTNode *value, int line);
+ASTNode *create_func_node(const char *name, ASTNode *params, DataType ret_type, ASTNode *body, int line);
+ASTNode *create_param_node(const char *name, DataType type, int line);
+ASTNode *create_call_node(const char *name, ASTNode *args, int line);
+ASTNode *create_return_node(ASTNode *value, int line);
+int ast_list_length(const ASTNode *list);
 
 DataType parse_type_name(const char *name);
 const char *type_name(DataType type);

@@ -22,6 +22,9 @@
 "sea"                         { return TOKEN_SEA; }
 "fijo"                        { return TOKEN_FIJO; }
 "imprimir"                    { return TOKEN_IMPRIMIR; }
+"funcion"                     { return TOKEN_FUNCION; }
+"retornar"                    { return TOKEN_RETORNAR; }
+"nada"                        { return TOKEN_NADA; }
 
 "entero"|"decimal"|"texto"|"caracter"|"booleano" {
                                 yylval.str_val = string_copy(yytext);
@@ -31,7 +34,7 @@
 "verdadero"                   { yylval.bool_val = 1; return TOKEN_BOOL_LITERAL; }
 "falso"                       { yylval.bool_val = 0; return TOKEN_BOOL_LITERAL; }
 
-[:=;+\-*/()]                  { return yytext[0]; }
+[:=;,+\-*/(){}]               { return yytext[0]; }
 
 \"([^\\\"\n]|\\.)*\"          {
                                 yytext[yyleng - 1] = '\0';   /* quita la comilla final */

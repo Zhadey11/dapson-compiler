@@ -108,6 +108,45 @@ ASTNode *create_print_node(ASTNode *value, int line) {
   return node;
 }
 
+ASTNode *create_func_node(const char *name, ASTNode *params, DataType ret_type,
+                          ASTNode *body, int line) {
+  ASTNode *node = new_node(NODE_FUNC_DECL, line);
+  node->exprType = ret_type; /* el tipo que devuelve la funcion */
+  node->data.func.name = copy_or_die(name);
+  node->data.func.params = params;
+  node->data.func.body = body;
+  return node;
+}
+
+ASTNode *create_param_node(const char *name, DataType type, int line) {
+  ASTNode *node = new_node(NODE_PARAM, line);
+  node->exprType = type;
+  node->data.decl.name = copy_or_die(name);
+  node->data.decl.init = NULL;
+  return node;
+}
+
+ASTNode *create_call_node(const char *name, ASTNode *args, int line) {
+  ASTNode *node = new_node(NODE_CALL, line);
+  node->data.call.name = copy_or_die(name);
+  node->data.call.args = args;
+  return node;
+}
+
+ASTNode *create_return_node(ASTNode *value, int line) {
+  ASTNode *node = new_node(NODE_RETURN, line);
+  node->data.ret.value = value;
+  return node;
+}
+
+int ast_list_length(const ASTNode *list) {
+  int count = 0;
+  for (; list != NULL; list = list->next) {
+    count++;
+  }
+  return count;
+}
+
 /* ------------------------------------------------------------------ */
 /* Nombres                                                             */
 /* ------------------------------------------------------------------ */
@@ -128,6 +167,7 @@ const char *type_name(DataType type) {
   case TYPE_TEXTO: return "texto";
   case TYPE_CARACTER: return "caracter";
   case TYPE_BOOLEANO: return "booleano";
+  case TYPE_NADA: return "nada";
   case TYPE_UNKNOWN: break;
   }
   return "desconocido";
@@ -158,6 +198,10 @@ static const char *node_kind(const ASTNode *node) {
   case NODE_IDENT: return "Identificador";
   case NODE_BINARY: return "Operacion binaria";
   case NODE_UNARY: return "Operacion unaria";
+  case NODE_FUNC_DECL: return "Declaracion de funcion";
+  case NODE_PARAM: return "Parametro";
+  case NODE_CALL: return "Llamada a funcion";
+  case NODE_RETURN: return "Retornar";
   }
   return "?";
 }
@@ -183,11 +227,19 @@ static void node_detail(const ASTNode *node, char *out, size_t size) {
   switch (node->type) {
   case NODE_VAR_DECL:
   case NODE_CONST_DECL:
+  case NODE_PARAM:
     snprintf(out, size, "%s", node->data.decl.name);
     break;
   case NODE_ASSIGN:
     snprintf(out, size, "%s", node->data.assign.name);
     break;
+  case NODE_FUNC_DECL:
+    snprintf(out, size, "%s", node->data.func.name);
+    break;
+  case NODE_CALL:
+    snprintf(out, size, "%s", node->data.call.name);
+    break;
+  case NODE_RETURN:
   case NODE_PRINT:
     break;
   case NODE_INT:
@@ -220,27 +272,45 @@ static void node_detail(const ASTNode *node, char *out, size_t size) {
   }
 }
 
-static int node_children(const ASTNode *node, const ASTNode *kids[2]) {
+/* El nodo numero "index" de una lista enlazada con next (o NULL) */
+static const ASTNode *list_nth(const ASTNode *list, int index) {
+  while (list != NULL && index > 0) {
+    list = list->next;
+    index--;
+  }
+  return list;
+}
+
+/* El hijo numero "index" de un nodo (o NULL si no hay mas hijos) */
+static const ASTNode *node_child(const ASTNode *node, int index) {
   switch (node->type) {
   case NODE_VAR_DECL:
   case NODE_CONST_DECL:
-    kids[0] = node->data.decl.init;
-    return kids[0] != NULL ? 1 : 0;
+    return index == 0 ? node->data.decl.init : NULL;
   case NODE_ASSIGN:
-    kids[0] = node->data.assign.value;
-    return 1;
+    return index == 0 ? node->data.assign.value : NULL;
   case NODE_PRINT:
-    kids[0] = node->data.print.value;
-    return 1;
+    return index == 0 ? node->data.print.value : NULL;
+  case NODE_RETURN:
+    return index == 0 ? node->data.ret.value : NULL;
   case NODE_BINARY:
-    kids[0] = node->data.binary.left;
-    kids[1] = node->data.binary.right;
-    return 2;
+    if (index == 0) return node->data.binary.left;
+    if (index == 1) return node->data.binary.right;
+    return NULL;
   case NODE_UNARY:
-    kids[0] = node->data.binary.left;
-    return 1;
+    return index == 0 ? node->data.binary.left : NULL;
+  case NODE_CALL:
+    return list_nth(node->data.call.args, index);
+  case NODE_FUNC_DECL: {
+    /* primero los parametros, despues las sentencias del cuerpo */
+    int params = ast_list_length(node->data.func.params);
+    if (index < params) {
+      return list_nth(node->data.func.params, index);
+    }
+    return list_nth(node->data.func.body, index - params);
+  }
   default:
-    return 0;
+    return NULL;
   }
 }
 
@@ -266,10 +336,9 @@ static void print_tree_node(const ASTNode *node, const char *prefix,
   snprintf(next_prefix, sizeof(next_prefix), "%s%s", prefix,
            is_last ? "    " : "|   ");
 
-  const ASTNode *kids[2] = {NULL, NULL};
-  int count = node_children(node, kids);
-  for (int i = 0; i < count; i++) {
-    print_tree_node(kids[i], next_prefix, i == count - 1);
+  for (int i = 0; node_child(node, i) != NULL; i++) {
+    print_tree_node(node_child(node, i), next_prefix,
+                    node_child(node, i + 1) == NULL);
   }
 }
 
@@ -318,10 +387,8 @@ static void add_row(AstRows *list, const ASTNode *node, int parent) {
   list->count++;
 
   int my_id = row->id; /* "row" puede invalidarse con el realloc de abajo */
-  const ASTNode *kids[2] = {NULL, NULL};
-  int kid_count = node_children(node, kids);
-  for (int i = 0; i < kid_count; i++) {
-    add_row(list, kids[i], my_id);
+  for (int i = 0; node_child(node, i) != NULL; i++) {
+    add_row(list, node_child(node, i), my_id);
   }
 }
 
@@ -414,6 +481,21 @@ void free_ast(ASTNode *node) {
       break;
     case NODE_PRINT:
       free_ast(node->data.print.value);
+      break;
+    case NODE_FUNC_DECL:
+      free(node->data.func.name);
+      free_ast(node->data.func.params);
+      free_ast(node->data.func.body);
+      break;
+    case NODE_PARAM:
+      free(node->data.decl.name);
+      break;
+    case NODE_CALL:
+      free(node->data.call.name);
+      free_ast(node->data.call.args);
+      break;
+    case NODE_RETURN:
+      free_ast(node->data.ret.value);
       break;
     case NODE_TEXT:
       free(node->data.strValue);

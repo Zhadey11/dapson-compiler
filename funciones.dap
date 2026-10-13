@@ -1,0 +1,47 @@
+// Funciones en Dapson
+// funcion nombre(parametro: tipo, ...): tipo_de_retorno { ... }
+
+// 1. Sin parametros y sin retorno
+funcion saludar() {
+  imprimir "Hola desde una funcion";
+}
+
+// 2. Con parametros y sin retorno
+funcion presentar(nombre: texto, edad: entero) {
+  imprimir nombre;
+  imprimir edad;
+}
+
+// 3. Con parametros y con retorno
+funcion sumar(a: entero, b: entero): entero {
+  retornar a + b;
+}
+
+// 4. Con variables locales (solo existen dentro de la funcion)
+funcion areaCirculo(radio: decimal): decimal {
+  fijo pi: decimal = 3.1416;
+  sea area: decimal = pi * radio * radio;
+  retornar area;
+}
+
+// 5. Una funcion que usa otras funciones
+funcion sumaDoble(x: entero, y: entero): entero {
+  retornar sumar(x, y) * 2;
+}
+
+// 6. Un entero se acepta donde se espera un decimal
+funcion mitad(n: decimal): decimal {
+  retornar n / 2;
+}
+
+// ---- Programa principal ----
+saludar();
+presentar("Jay", 20);
+
+sea total: entero = sumar(2, 3);
+imprimir total;
+
+imprimir sumar(10, 20) - 5;
+imprimir areaCirculo(2);
+imprimir sumaDoble(3, 4);
+imprimir mitad(7);

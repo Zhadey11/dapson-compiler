@@ -26,7 +26,7 @@ OBJS      := $(BUILD_DIR)/main.o \
              $(BUILD_DIR)/parser.tab.o \
              $(BUILD_DIR)/lex.yy.o
 
-.PHONY: all clean run debug errores
+.PHONY: all clean run debug errores funciones errores-funciones
 
 all: $(TARGET)
 
@@ -65,6 +65,14 @@ debug: $(TARGET)
 # make errores -> programa con errores semanticos a proposito
 errores: $(TARGET)
 	./$(TARGET) errores.dap
+
+# make funciones -> programa de ejemplo con funciones
+funciones: $(TARGET)
+	./$(TARGET) funciones.dap
+
+# make errores-funciones -> errores semanticos de funciones a proposito
+errores-funciones: $(TARGET)
+	./$(TARGET) errores_funciones.dap
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)

@@ -77,6 +77,10 @@ int main(int argc, char **argv) {
     if (debug) {
       printf("=== Tabla de simbolos ===\n");
       symbol_table_print(&table);
+      if (table.func_count > 0) {
+        printf("\n=== Funciones ===\n");
+        function_table_print(&table);
+      }
     }
     free_ast(ast_root);
     symbol_table_destroy(&table);
@@ -94,6 +98,10 @@ int main(int argc, char **argv) {
   if (debug) {
     printf("\n=== Tabla de simbolos ===\n");
     symbol_table_print(&table);
+    if (table.func_count > 0) {
+      printf("\n=== Funciones ===\n");
+      function_table_print(&table);
+    }
   }
 
   free_ast(ast_root);
