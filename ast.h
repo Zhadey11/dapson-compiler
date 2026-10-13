@@ -8,6 +8,7 @@ typedef enum {
   TYPE_TEXTO,
   TYPE_CARACTER,
   TYPE_BOOLEANO,
+  TYPE_NADA,
   TYPE_UNKNOWN
 } DataType;
 
@@ -31,7 +32,11 @@ typedef enum {
   NODE_BOOL,
   NODE_IDENT,
   NODE_BINARY,
-  NODE_UNARY
+  NODE_UNARY,
+  NODE_FUNC_DECL,
+  NODE_PARAM,
+  NODE_CALL,
+  NODE_RETURN
 } NodeType;
 
 typedef struct ASTNode {
