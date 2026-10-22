@@ -29,7 +29,7 @@ OBJS      := $(BUILD_DIR)/main.o \
              $(BUILD_DIR)/parser.tab.o \
              $(BUILD_DIR)/lex.yy.o
 
-.PHONY: all clean run debug errores funciones errores-funciones
+.PHONY: all clean run debug errores funciones errores-funciones condicionales errores-si
 
 all: $(TARGET)
 
@@ -76,6 +76,14 @@ funciones: $(TARGET)
 # make errores-funciones -> errores semanticos de funciones a proposito
 errores-funciones: $(TARGET)
 	./$(TARGET) $(EX_DIR)/errores_funciones.dap
+
+# make condicionales -> programa de ejemplo con si / sino
+condicionales: $(TARGET)
+	./$(TARGET) $(EX_DIR)/condicionales.dap
+
+# make errores-si -> errores semanticos de condicionales a proposito
+errores-si: $(TARGET)
+	./$(TARGET) $(EX_DIR)/errores_si.dap
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)

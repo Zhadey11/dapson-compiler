@@ -28,16 +28,16 @@ typedef struct {
   const ASTNode *function;
 } Scope;
 
-/* Busca primero en el ambito local y despues en el global */
+/* Busca desde el ambito mas interno hacia afuera: bloque -> funcion -> global */
 static Symbol *find_symbol(const Scope *scope, const char *name) {
-  Symbol *symbol = NULL;
-  if (scope->local != NULL) {
-    symbol = symbol_table_lookup(scope->local, name);
+  for (const SymbolTable *table = scope->local; table != NULL;
+       table = table->parent) {
+    Symbol *symbol = symbol_table_lookup(table, name);
+    if (symbol != NULL) {
+      return symbol;
+    }
   }
-  if (symbol == NULL) {
-    symbol = symbol_table_lookup(scope->global, name);
-  }
-  return symbol;
+  return symbol_table_lookup(scope->global, name);
 }
 
 /* La tabla donde se declaran las variables nuevas */
@@ -58,6 +58,11 @@ static int assignable(DataType target, DataType source) {
     return 1;
   }
   return target == TYPE_DECIMAL && source == TYPE_ENTERO;
+}
+
+static int is_comparison(Operator op) {
+  return op == OP_EQ || op == OP_NE || op == OP_GT || op == OP_LT ||
+         op == OP_GE || op == OP_LE;
 }
 
 static int is_zero_literal(const ASTNode *node) {
@@ -172,6 +177,43 @@ static DataType analyze_expression(ASTNode *node, Scope *scope) {
     if (left == TYPE_UNKNOWN || right == TYPE_UNKNOWN) {
       break; /* error ya reportado: no se encadenan mas errores */
     }
+
+    /* "o": los dos lados deben ser booleanos */
+    if (op == OP_OR) {
+      if (left != TYPE_BOOLEANO || right != TYPE_BOOLEANO) {
+        semantic_error(node->line,
+                       "el operador 'o' requiere operandos booleanos, se encontro %s y %s",
+                       type_name(left), type_name(right));
+      } else {
+        result = TYPE_BOOLEANO;
+      }
+      break;
+    }
+
+    /* == y !=: numeros entre si, o dos valores del mismo tipo */
+    if (op == OP_EQ || op == OP_NE) {
+      if ((is_numeric(left) && is_numeric(right)) || left == right) {
+        result = TYPE_BOOLEANO;
+      } else {
+        semantic_error(node->line, "no se puede comparar %s con %s usando '%s'",
+                       type_name(left), type_name(right), operator_symbol(op));
+      }
+      break;
+    }
+
+    /* > < >= <=: solo numeros */
+    if (is_comparison(op)) {
+      if (!is_numeric(left) || !is_numeric(right)) {
+        semantic_error(node->line,
+                       "el operador '%s' requiere operandos numericos, se encontro %s y %s",
+                       operator_symbol(op), type_name(left), type_name(right));
+      } else {
+        result = TYPE_BOOLEANO;
+      }
+      break;
+    }
+
+    /* + - * /: solo numeros */
     if (!is_numeric(left) || !is_numeric(right)) {
       semantic_error(node->line,
                      "el operador '%s' requiere operandos numericos, se encontro %s y %s",
@@ -195,6 +237,8 @@ static DataType analyze_expression(ASTNode *node, Scope *scope) {
   case NODE_FUNC_DECL:
   case NODE_PARAM:
   case NODE_RETURN:
+  case NODE_IF:
+  case NODE_BLOCK:
     break;
   }
 
@@ -287,6 +331,52 @@ static void analyze_return(ASTNode *node, Scope *scope) {
   }
 }
 
+/*
+ * Una lista de sentencias "siempre retorna" si tiene un 'retornar', o un
+ * 'si' con 'sino' donde AMBOS bloques siempre retornan.
+ */
+static int always_returns(const ASTNode *list) {
+  for (const ASTNode *node = list; node != NULL; node = node->next) {
+    if (node->type == NODE_RETURN) {
+      return 1;
+    }
+    if (node->type == NODE_IF && node->data.if_stmt.else_block != NULL &&
+        always_returns(node->data.if_stmt.then_block->data.block.body) &&
+        always_returns(node->data.if_stmt.else_block->data.block.body)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* Analiza las sentencias de un bloque en un ambito propio (sus variables
+   solo existen dentro del bloque) */
+static void analyze_scoped_block(const ASTNode *block, Scope *scope) {
+  SymbolTable inner_table;
+  symbol_table_init(&inner_table);
+  inner_table.parent = scope->local;
+
+  Scope inner = *scope;
+  inner.local = &inner_table;
+  analyze_block(block->data.block.body, &inner);
+
+  symbol_table_destroy(&inner_table);
+}
+
+static void analyze_if(ASTNode *node, Scope *scope) {
+  DataType condition = analyze_value(node->data.if_stmt.cond, scope);
+  if (condition != TYPE_UNKNOWN && condition != TYPE_BOOLEANO) {
+    semantic_error(node->line,
+                   "la condicion del 'si' debe ser booleana, se encontro %s",
+                   type_name(condition));
+  }
+
+  analyze_scoped_block(node->data.if_stmt.then_block, scope);
+  if (node->data.if_stmt.else_block != NULL) {
+    analyze_scoped_block(node->data.if_stmt.else_block, scope);
+  }
+}
+
 static void analyze_function(ASTNode *node, Scope *scope) {
   SymbolTable *global = scope->global;
   const char *name = node->data.func.name;
@@ -322,16 +412,9 @@ static void analyze_function(ASTNode *node, Scope *scope) {
   Scope inner = {global, locals, node};
   analyze_block(node->data.func.body, &inner);
 
-  /* Una funcion con tipo de retorno necesita al menos un 'retornar' */
+  /* Una funcion con tipo de retorno debe retornar un valor en todos sus caminos */
   if (node->exprType != TYPE_NADA) {
-    int has_return = 0;
-    for (const ASTNode *statement = node->data.func.body; statement != NULL;
-         statement = statement->next) {
-      if (statement->type == NODE_RETURN) {
-        has_return = 1;
-      }
-    }
-    if (!has_return) {
+    if (!always_returns(node->data.func.body)) {
       semantic_error(node->line, "la funcion '%s' debe retornar un valor de tipo %s",
                      name, type_name(node->exprType));
     }
@@ -358,6 +441,9 @@ static void analyze_block(ASTNode *list, Scope *scope) {
       break;
     case NODE_RETURN:
       analyze_return(node, scope);
+      break;
+    case NODE_IF:
+      analyze_if(node, scope);
       break;
     case NODE_FUNC_DECL:
       analyze_function(node, scope);

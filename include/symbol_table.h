@@ -33,6 +33,9 @@ typedef struct SymbolTable {
   Symbol *head;
   Symbol *tail;
   int count;
+  /* tabla del ambito que contiene a este (un bloque "si" dentro de otro
+     bloque o de una funcion); NULL si no hay */
+  struct SymbolTable *parent;
   /* funciones definidas (solo la tabla global las usa) */
   struct Function *func_head;
   struct Function *func_tail;

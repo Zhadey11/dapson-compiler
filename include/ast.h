@@ -8,7 +8,7 @@ typedef enum {
   TYPE_TEXTO,
   TYPE_CARACTER,
   TYPE_BOOLEANO,
-  TYPE_NADA,
+  TYPE_NADA,    /* una funcion que no devuelve valor */
   TYPE_UNKNOWN
 } DataType;
 
@@ -17,6 +17,13 @@ typedef enum {
   OP_SUB,
   OP_MUL,
   OP_DIV,
+  OP_EQ, /* ==  (o "es")          */
+  OP_NE, /* !=  (o "no es")       */
+  OP_GT, /* >   (o "mayor")       */
+  OP_LT, /* <   (o "menor")       */
+  OP_GE, /* >=                    */
+  OP_LE, /* <=                    */
+  OP_OR, /* ||  (o "o")           */
   OP_NEG /* menos unario: -5 */
 } Operator;
 
@@ -33,10 +40,12 @@ typedef enum {
   NODE_IDENT,
   NODE_BINARY,
   NODE_UNARY,
-  NODE_FUNC_DECL,
-  NODE_PARAM,
-  NODE_CALL,
-  NODE_RETURN
+  NODE_FUNC_DECL, /* funcion nombre(params): tipo { ... } */
+  NODE_PARAM,     /* parametro de una funcion: nombre: tipo */
+  NODE_CALL,      /* nombre(argumentos)          */
+  NODE_RETURN,    /* retornar expresion;         */
+  NODE_IF,        /* si condicion: { ... } sino { ... } */
+  NODE_BLOCK      /* las sentencias entre { } de un si o un sino */
 } NodeType;
 
 typedef struct ASTNode {
@@ -67,18 +76,26 @@ typedef struct ASTNode {
       struct ASTNode *right; /* NULL en el menos unario */
     } binary;
     struct {
-      char *name;  /* nombre de la funcion */
-      struct ASTNode *params; /* lista de parametros */
-      DataType returnType;      /* Si no devuelve nada */
-      struct ASTNode *body;     /* sentencias del cuerpo */
-    } func;
+      char *name;
+      struct ASTNode *params; /* lista de NODE_PARAM (enlazada con next) */
+      struct ASTNode *body;   /* lista de sentencias                     */
+    } func;                   /* el tipo de retorno va en exprType       */
     struct {
-     char *name;            /* función que se llama */
-      struct ASTNode *args;  /* argumentos (enlazados con next) */
+      char *name;
+      struct ASTNode *args; /* lista de expresiones (enlazada con next) */
     } call;
     struct {
       struct ASTNode *value; /* NULL en "retornar;" */
     } ret;
+    struct {
+      struct ASTNode *cond;       /* la condicion (debe ser booleano)   */
+      struct ASTNode *then_block; /* NODE_BLOCK del "si"                */
+      struct ASTNode *else_block; /* NODE_BLOCK del "sino" (o NULL)     */
+    } if_stmt;
+    struct {
+      struct ASTNode *body; /* lista de sentencias (enlazada con next) */
+      int is_else;          /* 1 si es el bloque del "sino"            */
+    } block;
   } data;
 
   struct ASTNode *next; /* lista enlazada de sentencias */
@@ -97,11 +114,16 @@ ASTNode *create_decl_node(NodeType kind, const char *name, DataType type,
                           ASTNode *init, int line);
 ASTNode *create_assign_node(const char *name, ASTNode *value, int line);
 ASTNode *create_print_node(ASTNode *value, int line);
-ASTNode *create_func_node(const char *name, ASTNode *params, DataType ret_type, ASTNode *body, int line);
+ASTNode *create_func_node(const char *name, ASTNode *params, DataType ret_type,
+                          ASTNode *body, int line);
 ASTNode *create_param_node(const char *name, DataType type, int line);
 ASTNode *create_call_node(const char *name, ASTNode *args, int line);
 ASTNode *create_return_node(ASTNode *value, int line);
-int ast_list_length(const ASTNode *list);
+ASTNode *create_block_node(ASTNode *body, int line);
+ASTNode *create_if_node(ASTNode *cond, ASTNode *then_block,
+                        ASTNode *else_block, int line);
+
+int ast_list_length(const ASTNode *list); /* cuenta nodos enlazados con next */
 
 DataType parse_type_name(const char *name);
 const char *type_name(DataType type);

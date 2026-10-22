@@ -47,6 +47,15 @@ static ASTNode *append_node(ASTNode *list, ASTNode *node) {
 %token TOKEN_FUNCION "funcion"
 %token TOKEN_RETORNAR "retornar"
 %token TOKEN_NADA "nada"
+%token TOKEN_SI "si"
+%token TOKEN_SINO "sino"
+%token TOKEN_EQ "== (es)"
+%token TOKEN_NE "!= (no es)"
+%token TOKEN_GT "> (mayor)"
+%token TOKEN_LT "< (menor)"
+%token TOKEN_GE ">="
+%token TOKEN_LE "<="
+%token TOKEN_OR "|| (o)"
 %token <str_val> TOKEN_TYPE "tipo de dato"
 %token <str_val> TOKEN_IDENTIFIER "identificador"
 %token <str_val> TOKEN_STRING_LITERAL "texto"
@@ -56,6 +65,8 @@ static ASTNode *append_node(ASTNode *list, ASTNode *node) {
 %token <char_val> TOKEN_CHAR_LITERAL "caracter"
 
 /* Precedencia: de menor a mayor */
+%left TOKEN_OR
+%nonassoc TOKEN_EQ TOKEN_NE TOKEN_GT TOKEN_LT TOKEN_GE TOKEN_LE
 %left '+' '-'
 %left '*' '/'
 %right UMINUS
@@ -63,6 +74,7 @@ static ASTNode *append_node(ASTNode *list, ASTNode *node) {
 %type <node> item_list item function_def
 %type <node> statement_list statement_list_opt statement expression
 %type <node> param_list param_list_opt param arg_list arg_list_opt
+%type <node> if_statement block else_part
 %type <int_val> return_type
 
 /* Si el parser descarta un valor (por un error), se libera la memoria */
@@ -201,10 +213,37 @@ statement:
     | TOKEN_RETORNAR ';' {
         $$ = create_return_node(NULL, @1.first_line);
     }
+    /* Condicional                            si condicion: { ... } sino { ... } */
+    | if_statement {
+        $$ = $1;
+    }
     /* Recuperacion de errores: se salta hasta el proximo ';' */
     | error ';' {
         yyerrok;
         $$ = NULL;
+    }
+    ;
+
+/* Regla 4: condicional */
+if_statement:
+    TOKEN_SI expression ':' block else_part {
+        $$ = create_if_node($2, $4, $5, @1.first_line);
+    }
+    ;
+
+block:
+    '{' statement_list_opt '}' {
+        $$ = create_block_node($2, @1.first_line);
+    }
+    ;
+
+else_part:
+    /* vacio */ {
+        $$ = NULL;
+    }
+    | TOKEN_SINO block {
+        $2->data.block.is_else = 1;
+        $$ = $2;
     }
     ;
 
@@ -253,6 +292,27 @@ expression:
     }
     | '(' expression ')' {
         $$ = $2;
+    }
+    | expression TOKEN_OR expression {
+        $$ = create_binary_node(OP_OR, $1, $3, @2.first_line);
+    }
+    | expression TOKEN_EQ expression {
+        $$ = create_binary_node(OP_EQ, $1, $3, @2.first_line);
+    }
+    | expression TOKEN_NE expression {
+        $$ = create_binary_node(OP_NE, $1, $3, @2.first_line);
+    }
+    | expression TOKEN_GT expression {
+        $$ = create_binary_node(OP_GT, $1, $3, @2.first_line);
+    }
+    | expression TOKEN_LT expression {
+        $$ = create_binary_node(OP_LT, $1, $3, @2.first_line);
+    }
+    | expression TOKEN_GE expression {
+        $$ = create_binary_node(OP_GE, $1, $3, @2.first_line);
+    }
+    | expression TOKEN_LE expression {
+        $$ = create_binary_node(OP_LE, $1, $3, @2.first_line);
     }
     | expression '+' expression {
         $$ = create_binary_node(OP_ADD, $1, $3, @2.first_line);

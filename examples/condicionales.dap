@@ -1,0 +1,71 @@
+// Condicionales en Dapson
+// si condicion: { ... } sino { ... }
+
+sea x: entero = 10;
+sea y: entero = 20;
+
+// 1. si / sino con una comparacion
+si x > y: {
+  imprimir "x es mayor que y";
+} sino {
+  imprimir "x no es mayor que y";
+}
+
+// 2. si sin sino
+si x < y: {
+  imprimir "x es menor que y";
+}
+
+// 3. una condicion guardada en una variable booleana
+sea esMayor: booleano = x > y;
+si esMayor: {
+  imprimir "x es mayor";
+} sino {
+  imprimir "x es menor o igual";
+}
+
+// 4. las comparaciones tambien se pueden escribir con palabras
+si x menor y: {
+  imprimir "x menor y";
+}
+si x es 10: {
+  imprimir "x es 10";
+}
+si x no es 5: {
+  imprimir "x no es 5";
+}
+
+// 5. la condicion "o": basta con que una sea verdadera
+si x > 100 o y == 20: {
+  imprimir "se cumple una de las dos";
+}
+
+// 6. comparar textos
+sea nombre: texto = "Jay";
+si nombre == "Jay": {
+  imprimir "Hola Jay";
+}
+
+// 7. dentro de una funcion, usando retornar
+funcion mayorDe(a: entero, b: entero): entero {
+  si a > b: {
+    retornar a;
+  } sino {
+    retornar b;
+  }
+}
+imprimir mayorDe(3, 9);
+imprimir mayorDe(15, 4);
+
+// 8. un si dentro de otro si
+si x == 10: {
+  si y == 20: {
+    imprimir "x es 10 y y es 20";
+  }
+}
+
+// 9. las variables de un bloque solo existen dentro de ese bloque
+si x == 10: {
+  sea temporal: entero = x * 2;
+  imprimir temporal;
+}

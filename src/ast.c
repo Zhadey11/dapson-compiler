@@ -139,6 +139,22 @@ ASTNode *create_return_node(ASTNode *value, int line) {
   return node;
 }
 
+ASTNode *create_block_node(ASTNode *body, int line) {
+  ASTNode *node = new_node(NODE_BLOCK, line);
+  node->data.block.body = body;
+  node->data.block.is_else = 0;
+  return node;
+}
+
+ASTNode *create_if_node(ASTNode *cond, ASTNode *then_block,
+                        ASTNode *else_block, int line) {
+  ASTNode *node = new_node(NODE_IF, line);
+  node->data.if_stmt.cond = cond;
+  node->data.if_stmt.then_block = then_block;
+  node->data.if_stmt.else_block = else_block;
+  return node;
+}
+
 int ast_list_length(const ASTNode *list) {
   int count = 0;
   for (; list != NULL; list = list->next) {
@@ -179,6 +195,13 @@ const char *operator_symbol(Operator op) {
   case OP_SUB: return "-";
   case OP_MUL: return "*";
   case OP_DIV: return "/";
+  case OP_EQ: return "==";
+  case OP_NE: return "!=";
+  case OP_GT: return ">";
+  case OP_LT: return "<";
+  case OP_GE: return ">=";
+  case OP_LE: return "<=";
+  case OP_OR: return "||";
   case OP_NEG: return "-";
   }
   return "?";
@@ -202,6 +225,8 @@ static const char *node_kind(const ASTNode *node) {
   case NODE_PARAM: return "Parametro";
   case NODE_CALL: return "Llamada a funcion";
   case NODE_RETURN: return "Retornar";
+  case NODE_IF: return "Si (condicional)";
+  case NODE_BLOCK: return "Bloque";
   }
   return "?";
 }
@@ -239,8 +264,12 @@ static void node_detail(const ASTNode *node, char *out, size_t size) {
   case NODE_CALL:
     snprintf(out, size, "%s", node->data.call.name);
     break;
-  case NODE_RETURN:
   case NODE_PRINT:
+  case NODE_RETURN:
+  case NODE_IF:
+    break;
+  case NODE_BLOCK:
+    snprintf(out, size, "%s", node->data.block.is_else ? "sino" : "si");
     break;
   case NODE_INT:
     snprintf(out, size, "%lld", node->data.intValue);
@@ -301,6 +330,13 @@ static const ASTNode *node_child(const ASTNode *node, int index) {
     return index == 0 ? node->data.binary.left : NULL;
   case NODE_CALL:
     return list_nth(node->data.call.args, index);
+  case NODE_IF:
+    if (index == 0) return node->data.if_stmt.cond;
+    if (index == 1) return node->data.if_stmt.then_block;
+    if (index == 2) return node->data.if_stmt.else_block;
+    return NULL;
+  case NODE_BLOCK:
+    return list_nth(node->data.block.body, index);
   case NODE_FUNC_DECL: {
     /* primero los parametros, despues las sentencias del cuerpo */
     int params = ast_list_length(node->data.func.params);
@@ -496,6 +532,14 @@ void free_ast(ASTNode *node) {
       break;
     case NODE_RETURN:
       free_ast(node->data.ret.value);
+      break;
+    case NODE_IF:
+      free_ast(node->data.if_stmt.cond);
+      free_ast(node->data.if_stmt.then_block);
+      free_ast(node->data.if_stmt.else_block);
+      break;
+    case NODE_BLOCK:
+      free_ast(node->data.block.body);
       break;
     case NODE_TEXT:
       free(node->data.strValue);

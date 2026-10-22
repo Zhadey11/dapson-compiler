@@ -25,6 +25,21 @@
 "funcion"                     { return TOKEN_FUNCION; }
 "retornar"                    { return TOKEN_RETORNAR; }
 "nada"                        { return TOKEN_NADA; }
+"si"                          { return TOKEN_SI; }
+"sino"                        { return TOKEN_SINO; }
+
+"=="                          { return TOKEN_EQ; }
+"!="                          { return TOKEN_NE; }
+">="                          { return TOKEN_GE; }
+"<="                          { return TOKEN_LE; }
+">"                           { return TOKEN_GT; }
+"<"                           { return TOKEN_LT; }
+"||"                          { return TOKEN_OR; }
+"es"                          { return TOKEN_EQ; }
+"no"[ \t\r\n]+"es"            { return TOKEN_NE; }
+"mayor"                       { return TOKEN_GT; }
+"menor"                       { return TOKEN_LT; }
+"o"                           { return TOKEN_OR; }
 
 "entero"|"decimal"|"texto"|"caracter"|"booleano" {
                                 yylval.str_val = string_copy(yytext);

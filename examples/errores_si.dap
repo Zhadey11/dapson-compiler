@@ -1,0 +1,35 @@
+// Errores semanticos de condicionales, a proposito, para la demostracion
+
+sea x: entero = 10;
+sea nombre: texto = "Jay";
+
+si x: {                          // error: la condicion no es booleana
+  imprimir "hola";
+}
+
+si x > "diez": {                 // error: no se puede comparar entero con texto con '>'
+  imprimir "hola";
+}
+
+si nombre > "Ana": {             // error: '>' solo sirve con numeros
+  imprimir "hola";
+}
+
+si x == nombre: {                // error: no se puede comparar entero con texto
+  imprimir "hola";
+}
+
+si x > 5 o x: {                  // error: 'o' necesita booleanos en los dos lados
+  imprimir "hola";
+}
+
+si x == 10: {
+  sea dentro: entero = 1;
+}
+imprimir dentro;                 // error: 'dentro' solo existe dentro del bloque
+
+funcion sinCamino(n: entero): entero {   // error: si n es falso no retorna nada
+  si n > 0: {
+    retornar n;
+  }
+}

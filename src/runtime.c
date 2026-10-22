@@ -38,16 +38,16 @@ static double as_double(const Value *value) {
                                     : value->data.decimal_value;
 }
 
-/* Busca primero en las variables locales y despues en las globales */
+/* Busca desde el ambito mas interno hacia afuera: bloque -> funcion -> global */
 static Symbol *find_symbol(const Frame *frame, const char *name) {
-  Symbol *symbol = NULL;
-  if (frame->local != NULL) {
-    symbol = symbol_table_lookup(frame->local, name);
+  for (const SymbolTable *table = frame->local; table != NULL;
+       table = table->parent) {
+    Symbol *symbol = symbol_table_lookup(table, name);
+    if (symbol != NULL) {
+      return symbol;
+    }
   }
-  if (symbol == NULL) {
-    symbol = symbol_table_lookup(frame->global, name);
-  }
-  return symbol;
+  return symbol_table_lookup(frame->global, name);
 }
 
 /* Guarda un valor en una variable (un entero se convierte a decimal si hace falta) */
@@ -62,6 +62,48 @@ static void store_value(Symbol *symbol, const Value *value) {
 
 static int evaluate(const ASTNode *node, Frame *frame, Value *out);
 static int execute_list(const ASTNode *list, Frame *frame);
+
+static int is_comparison(Operator op) {
+  return op == OP_EQ || op == OP_NE || op == OP_GT || op == OP_LT ||
+         op == OP_GE || op == OP_LE;
+}
+
+/* Convierte el resultado de comparar (menor < 0, igual = 0, mayor > 0) segun el operador */
+static int compare_result(Operator op, int order) {
+  switch (op) {
+  case OP_EQ: return order == 0;
+  case OP_NE: return order != 0;
+  case OP_GT: return order > 0;
+  case OP_LT: return order < 0;
+  case OP_GE: return order >= 0;
+  case OP_LE: return order <= 0;
+  default: return 0;
+  }
+}
+
+/* Compara dos valores ya validados por el analizador semantico */
+static int compare_values(Operator op, const Value *left, const Value *right) {
+  int order = 0;
+  if ((left->type == TYPE_ENTERO || left->type == TYPE_DECIMAL) &&
+      (right->type == TYPE_ENTERO || right->type == TYPE_DECIMAL)) {
+    if (left->type == TYPE_ENTERO && right->type == TYPE_ENTERO) {
+      long long a = left->data.int_value;
+      long long b = right->data.int_value;
+      order = (a > b) - (a < b);
+    } else {
+      double a = as_double(left);
+      double b = as_double(right);
+      order = (a > b) - (a < b);
+    }
+  } else if (left->type == TYPE_TEXTO) {
+    order = strcmp(left->data.text_value, right->data.text_value);
+  } else if (left->type == TYPE_CARACTER) {
+    order = (int)left->data.char_value - (int)right->data.char_value;
+  } else if (left->type == TYPE_BOOLEANO) {
+    order = left->data.bool_value - right->data.bool_value;
+  }
+  return compare_result(op, order);
+}
 
 /* Llama a una funcion: evalua los argumentos, crea un marco nuevo y ejecuta el cuerpo */
 static int call_function(const ASTNode *node, Frame *frame, Value *out) {
@@ -184,9 +226,34 @@ static int evaluate(const ASTNode *node, Frame *frame, Value *out) {
   case NODE_BINARY: {
     Value left, right;
     Operator op = node->data.binary.op;
+
+    /* "o": si el lado izquierdo ya es verdadero, el derecho ni se evalua */
+    if (op == OP_OR) {
+      if (!evaluate(node->data.binary.left, frame, &left)) {
+        return 0;
+      }
+      out->type = TYPE_BOOLEANO;
+      if (left.data.bool_value) {
+        out->data.bool_value = 1;
+        return 1;
+      }
+      if (!evaluate(node->data.binary.right, frame, &right)) {
+        return 0;
+      }
+      out->data.bool_value = right.data.bool_value;
+      return 1;
+    }
+
     if (!evaluate(node->data.binary.left, frame, &left) ||
         !evaluate(node->data.binary.right, frame, &right)) {
       return 0;
+    }
+
+    /* Comparaciones: el resultado siempre es booleano */
+    if (is_comparison(op)) {
+      out->type = TYPE_BOOLEANO;
+      out->data.bool_value = compare_values(op, &left, &right);
+      return 1;
     }
 
     /* Si alguno es decimal, toda la operacion es decimal */
@@ -202,7 +269,7 @@ static int evaluate(const ASTNode *node, Frame *frame, Value *out) {
       case OP_SUB: out->data.decimal_value = a - b; break;
       case OP_MUL: out->data.decimal_value = a * b; break;
       case OP_DIV: out->data.decimal_value = a / b; break;
-      case OP_NEG: break;
+      default: break;
       }
       return 1;
     }
@@ -225,7 +292,7 @@ static int evaluate(const ASTNode *node, Frame *frame, Value *out) {
         result = a / b; /* division entera, como en C */
       }
       break;
-    case OP_NEG: break;
+    default: break;
     }
     if (overflow) {
       return runtime_error(node->line, "desbordamiento en la operacion '%s'",
@@ -243,6 +310,8 @@ static int evaluate(const ASTNode *node, Frame *frame, Value *out) {
   case NODE_FUNC_DECL:
   case NODE_PARAM:
   case NODE_RETURN:
+  case NODE_IF:
+  case NODE_BLOCK:
     break;
   }
   return runtime_error(node->line, "expresion invalida");
@@ -297,6 +366,27 @@ static int execute_list(const ASTNode *list, Frame *frame) {
         return 0;
       }
       break;
+    case NODE_IF: {
+      if (!evaluate(node->data.if_stmt.cond, frame, &value)) {
+        return 0;
+      }
+      const ASTNode *chosen = value.data.bool_value ? node->data.if_stmt.then_block
+                                                    : node->data.if_stmt.else_block;
+      if (chosen != NULL) {
+        /* el bloque tiene su propio ambito: sus variables mueren al terminar */
+        SymbolTable block_table;
+        symbol_table_init(&block_table);
+        block_table.parent = frame->local;
+        frame->local = &block_table;
+        int ok = execute_list(chosen->data.block.body, frame);
+        frame->local = block_table.parent;
+        symbol_table_destroy(&block_table);
+        if (!ok) {
+          return 0;
+        }
+      }
+      break;
+    }
     case NODE_RETURN:
       if (node->data.ret.value != NULL) {
         if (!evaluate(node->data.ret.value, frame, &frame->ret)) {

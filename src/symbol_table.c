@@ -9,6 +9,7 @@ void symbol_table_init(SymbolTable *table) {
   table->head = NULL;
   table->tail = NULL;
   table->count = 0;
+  table->parent = NULL;
   table->func_head = NULL;
   table->func_tail = NULL;
   table->func_count = 0;
