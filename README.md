@@ -1,15 +1,8 @@
 # Dapson
 
-Compilador e intérprete de **Dapson**, un lenguaje propio hecho para el curso IS-581 Compiladores e Intérpretes (UNADECA).
-Autora: Jaydanie Dapson Morris.
-
-Fases: analizador léxico (Flex) → analizador sintáctico (Bison) → AST + AST Table → tabla de símbolos → análisis semántico → ejecución.
+Compilador e intérprete de **Dapson**, un lenguaje en español hecho con Flex, Bison y C.
 
 ## Requisitos
-
-`gcc`, `flex`, `bison` y `make`.
-
-En Linux Mint / Ubuntu:
 
 ```
 sudo apt install gcc flex bison make
@@ -21,43 +14,59 @@ sudo apt install gcc flex bison make
 make
 ```
 
-Esto genera el ejecutable `dapson`. Para borrar lo compilado: `make clean`.
+Esto crea el ejecutable `dapson` en la raíz del proyecto. Para borrar lo compilado: `make clean`.
 
-## Correr los ejemplos
+## Usar
+
+```
+./dapson archivo.dap       # ejecuta el programa
+./dapson -d archivo.dap    # además muestra el AST y la tabla de símbolos
+```
+
+## Comandos de ejemplo
 
 | Comando | Qué hace |
 |---|---|
-| `make run` | Corre `examples/programa.dap` |
-| `make debug` | Igual, mostrando el AST, la AST Table y la tabla de símbolos |
-| `make errores` | Corre `examples/errores.dap` (errores semánticos a propósito) |
-| `make funciones` | Corre `examples/funciones.dap` (ejemplo de funciones) |
-| `make errores-funciones` | Corre `examples/errores_funciones.dap` (errores de funciones a propósito) |
-| `make condicionales` | Corre `examples/condicionales.dap` (ejemplo de `si` / `sino`) |
-| `make errores-si` | Corre `examples/errores_si.dap` (errores de condicionales a propósito) |
-
-Para correr cualquier otro archivo:
-
-```
-./dapson archivo.dap
-./dapson -d archivo.dap
-```
-
-`-d` muestra el árbol, las tablas y la ejecución paso a paso.
+| `make run` | Ejecuta `examples/programa.dap` |
+| `make debug` | Igual, mostrando AST y tabla de símbolos |
+| `make errores` | Errores semánticos a propósito |
+| `make funciones` | Ejemplo con funciones |
+| `make errores-funciones` | Errores de funciones a propósito |
+| `make condicionales` | Ejemplo con `si` / `sino` |
+| `make errores-si` | Errores de condicionales a propósito |
+| `make arreglos` | Ejemplo con arreglos |
+| `make errores-arreglos` | Errores de arreglos a propósito |
 
 ## Reglas del lenguaje
 
-| Regla | Sintaxis |
+| Qué | Cómo se escribe |
 |---|---|
 | Variable | `sea nombre: tipo = valor;` |
 | Constante | `fijo nombre: tipo = valor;` |
 | Asignación | `nombre = valor;` |
-| Salida | `imprimir expresion;` |
+| Imprimir | `imprimir expresion;` |
+| Tipos | `entero` `decimal` `texto` `caracter` `booleano` |
 | Función | `funcion nombre(a: tipo, b: tipo): tipo { ... }` |
-| Retorno | `retornar expresion;` |
-| Llamada | `nombre(argumentos)` |
-| Condicional | `si condicion: { ... } sino { ... }` (el `sino` es opcional) |
+| Retornar | `retornar expresion;` |
+| Función sin valor | `funcion nombre() { ... }` (o `: nada`) |
+| Condicional | `si condicion: { ... } sino { ... }` |
+| Comparaciones | `==` `!=` `>` `<` `>=` `<=` (también `es`, `no es`, `mayor`, `menor`) |
+| O lógico | `\|\|` (o `o`) |
+| Tipo arreglo | `entero[]` `decimal[]` `texto[]` `caracter[]` `booleano[]` |
+| Arreglo literal | `[10, 20, 30]` o vacío `[]` |
+| Leer elemento | `lista[i]` (la primera posición es 0) |
+| Agregar al final | `lista.agregar(x);` |
+| Quitar el último | `lista.quitar()` (devuelve el elemento) |
+| Cantidad | `lista.largo()` |
 
-Tipos: `entero`, `decimal`, `texto`, `caracter`, `booleano`.
-Operaciones: `+ - * /` con precedencia y paréntesis.
-Comparaciones: `==` `!=` `>` `<` `>=` `<=` (también con palabras: `es`, `no es`, `mayor`, `menor`). El resultado es `booleano`.
-Lógico: `||` (también `o`).
+## Carpetas
+
+```
+include/     encabezados públicos (.h)
+src/ast/     árbol sintáctico
+src/lexer/   análisis léxico (Flex)
+src/parser/  análisis sintáctico (Bison)
+src/semantic/ análisis semántico
+src/runtime/ ejecución
+examples/    programas de ejemplo
+```

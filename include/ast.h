@@ -8,6 +8,12 @@ typedef enum {
   TYPE_TEXTO,
   TYPE_CARACTER,
   TYPE_BOOLEANO,
+  /* Arreglos: el ORDEN importa (el mismo que los 5 tipos de arriba) */
+  TYPE_ENTERO_ARR,
+  TYPE_DECIMAL_ARR,
+  TYPE_TEXTO_ARR,
+  TYPE_CARACTER_ARR,
+  TYPE_BOOLEANO_ARR,
   TYPE_NADA,    /* una funcion que no devuelve valor */
   TYPE_UNKNOWN
 } DataType;
@@ -45,8 +51,19 @@ typedef enum {
   NODE_CALL,      /* nombre(argumentos)          */
   NODE_RETURN,    /* retornar expresion;         */
   NODE_IF,        /* si condicion: { ... } sino { ... } */
-  NODE_BLOCK      /* las sentencias entre { } de un si o un sino */
+  NODE_BLOCK,     /* las sentencias entre { } de un si o un sino */
+  NODE_ARRAY,     /* [10, 20, 30]                */
+  NODE_INDEX,     /* lista[i]                    */
+  NODE_ARRAY_CALL /* lista.agregar(x)  lista.quitar()  lista.largo() */
 } NodeType;
+
+/* Los metodos de un arreglo */
+typedef enum {
+  ARRAY_AGREGAR,    /* lista.agregar(x): pone x al final            */
+  ARRAY_QUITAR,     /* lista.quitar():   saca y devuelve el ultimo  */
+  ARRAY_LARGO,      /* lista.largo():    cantidad de elementos      */
+  ARRAY_DESCONOCIDO /* un nombre que no es ninguno de los tres      */
+} ArrayMethod;
 
 typedef struct ASTNode {
   NodeType type;
@@ -96,6 +113,19 @@ typedef struct ASTNode {
       struct ASTNode *body; /* lista de sentencias (enlazada con next) */
       int is_else;          /* 1 si es el bloque del "sino"            */
     } block;
+    struct {
+      struct ASTNode *elements; /* lista de expresiones (enlazada con next) */
+    } array;
+    struct {
+      char *name;              /* el arreglo                  */
+      struct ASTNode *index;   /* la posicion (debe ser entero) */
+    } index;
+    struct {
+      char *name;              /* el arreglo                  */
+      char *method_name;       /* el nombre tal como se escribio */
+      ArrayMethod method;
+      struct ASTNode *args;    /* lista de expresiones (enlazada con next) */
+    } array_call;
   } data;
 
   struct ASTNode *next; /* lista enlazada de sentencias */
@@ -123,9 +153,17 @@ ASTNode *create_block_node(ASTNode *body, int line);
 ASTNode *create_if_node(ASTNode *cond, ASTNode *then_block,
                         ASTNode *else_block, int line);
 
+ASTNode *create_array_node(ASTNode *elements, int line);
+ASTNode *create_index_node(const char *name, ASTNode *index, int line);
+ASTNode *create_array_call_node(const char *name, const char *method_name,
+                                ASTNode *args, int line);
+
 int ast_list_length(const ASTNode *list); /* cuenta nodos enlazados con next */
 
 DataType parse_type_name(const char *name);
+int is_array_type(DataType type);
+DataType array_type_of(DataType element_type); /* entero -> entero[] */
+DataType element_type_of(DataType array_type); /* entero[] -> entero */
 const char *type_name(DataType type);
 const char *operator_symbol(Operator op);
 

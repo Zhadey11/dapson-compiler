@@ -64,6 +64,23 @@ static void format_decimal(double value, char *out, size_t size) {
   }
 }
 
+/* [1, 2, 3]  (si no cabe en "out", termina con "...]") */
+static void array_to_string(const Array *array, char *out, size_t size,
+                            int quote) {
+  char item[128];
+  snprintf(out, size, "[");
+  for (size_t i = 0; i < array->length; i++) {
+    value_to_string(&array->items[i], item, sizeof(item), quote);
+    size_t used = strlen(out);
+    if (used + strlen(item) + 6 >= size) {
+      snprintf(out + used, size - used, "...");
+      break;
+    }
+    snprintf(out + used, size - used, "%s%s", i > 0 ? ", " : "", item);
+  }
+  strncat(out, "]", size - strlen(out) - 1);
+}
+
 void value_to_string(const Value *value, char *out, size_t size, int quote) {
   switch (value->type) {
   case TYPE_ENTERO:
@@ -80,6 +97,13 @@ void value_to_string(const Value *value, char *out, size_t size, int quote) {
     break;
   case TYPE_BOOLEANO:
     snprintf(out, size, "%s", value->data.bool_value ? "verdadero" : "falso");
+    break;
+  case TYPE_ENTERO_ARR:
+  case TYPE_DECIMAL_ARR:
+  case TYPE_TEXTO_ARR:
+  case TYPE_CARACTER_ARR:
+  case TYPE_BOOLEANO_ARR:
+    array_to_string(value->data.array_value, out, size, quote);
     break;
   case TYPE_NADA:
     snprintf(out, size, "nada");

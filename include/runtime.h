@@ -7,4 +7,7 @@
 /* Ejecuta el programa. Devuelve 1 si termino bien, 0 si hubo un error. */
 int execute_program(const ASTNode *program, SymbolTable *table);
 
+/* Libera todos los arreglos creados al ejecutar (se llama al final del programa) */
+void runtime_release_arrays(void);
+
 #endif

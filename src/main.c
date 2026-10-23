@@ -104,6 +104,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  runtime_release_arrays(); /* NUEVO: libera todos los arreglos al final */
   free_ast(ast_root);
   symbol_table_destroy(&table);
   return status;

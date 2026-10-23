@@ -1,0 +1,17 @@
+// Errores semanticos de arreglos, a proposito, para la demostracion
+
+sea numeros: entero[] = [10, 20, 30];
+sea x: entero = 5;
+
+sea a: entero[] = [1, "dos", 3];     // error: un elemento no es entero
+sea b: entero[] = 5;                 // error: un entero no es un arreglo
+imprimir x[0];                       // error: x no es un arreglo
+imprimir numeros["uno"];             // error: el indice debe ser entero
+numeros.agregar("hola");             // error: no se puede agregar texto a entero[]
+numeros.agregar();                   // error: agregar necesita un valor
+numeros.vaciar();                    // error: ese metodo no existe
+fijo fijos: entero[] = [1, 2];
+fijos.agregar(3);                    // error: una constante no se modifica
+si numeros == numeros: {             // error: los arreglos no se comparan
+  imprimir "iguales";
+}

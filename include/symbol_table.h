@@ -4,8 +4,10 @@
 #include "ast.h"
 #include <stddef.h>
 
+struct Array; /* se define mas abajo */
+
 /* Valor en tiempo de ejecucion */
-typedef struct {
+typedef struct Value {
   DataType type;
   union {
     long long int_value;
@@ -13,8 +15,18 @@ typedef struct {
     const char *text_value;
     char char_value;
     int bool_value;
+    struct Array *array_value; /* un arreglo se comparte, no se copia */
   } data;
 } Value;
+
+/* Un arreglo en tiempo de ejecucion: crece solo, al agregar elementos */
+typedef struct Array {
+  DataType element_type;
+  Value *items;
+  size_t length;
+  size_t capacity;
+  struct Array *next_allocated; /* lista de todos los arreglos, para liberarlos al final */
+} Array;
 
 struct Function;
 

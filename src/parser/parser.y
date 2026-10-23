@@ -75,7 +75,7 @@ static ASTNode *append_node(ASTNode *list, ASTNode *node) {
 %type <node> statement_list statement_list_opt statement expression
 %type <node> param_list param_list_opt param arg_list arg_list_opt
 %type <node> if_statement block else_part
-%type <int_val> return_type
+%type <int_val> type return_type
 
 /* Si el parser descarta un valor (por un error), se libera la memoria */
 %destructor { free($$); } <str_val>
@@ -128,9 +128,20 @@ return_type:
     | ':' TOKEN_NADA {
         $$ = TYPE_NADA;
     }
-    | ':' TOKEN_TYPE {
-        $$ = parse_type_name($2);
-        free($2);
+    | ':' type {
+        $$ = $2;
+    }
+    ;
+
+/* Un tipo: entero, o un arreglo de ese tipo: entero[] */
+type:
+    TOKEN_TYPE {
+        $$ = parse_type_name($1);
+        free($1);
+    }
+    | TOKEN_TYPE '[' ']' {
+        $$ = array_type_of(parse_type_name($1));
+        free($1);
     }
     ;
 
@@ -153,10 +164,9 @@ param_list:
     ;
 
 param:
-    TOKEN_IDENTIFIER ':' TOKEN_TYPE {
-        $$ = create_param_node($1, parse_type_name($3), @1.first_line);
+    TOKEN_IDENTIFIER ':' type {
+        $$ = create_param_node($1, (DataType)$3, @1.first_line);
         free($1);
-        free($3);
     }
     ;
 
@@ -181,16 +191,14 @@ statement_list:
 
 statement:
     /* Regla 1: declaracion de variable      sea nombre: tipo = valor; */
-    TOKEN_SEA TOKEN_IDENTIFIER ':' TOKEN_TYPE '=' expression ';' {
-        $$ = create_decl_node(NODE_VAR_DECL, $2, parse_type_name($4), $6, @1.first_line);
+    TOKEN_SEA TOKEN_IDENTIFIER ':' type '=' expression ';' {
+        $$ = create_decl_node(NODE_VAR_DECL, $2, (DataType)$4, $6, @1.first_line);
         free($2);
-        free($4);
     }
     /* Declaracion de constante                fijo nombre: tipo = valor; */
-    | TOKEN_FIJO TOKEN_IDENTIFIER ':' TOKEN_TYPE '=' expression ';' {
-        $$ = create_decl_node(NODE_CONST_DECL, $2, parse_type_name($4), $6, @1.first_line);
+    | TOKEN_FIJO TOKEN_IDENTIFIER ':' type '=' expression ';' {
+        $$ = create_decl_node(NODE_CONST_DECL, $2, (DataType)$4, $6, @1.first_line);
         free($2);
-        free($4);
     }
     /* Regla 2: asignacion de variable         nombre = valor; */
     | TOKEN_IDENTIFIER '=' expression ';' {
@@ -205,6 +213,12 @@ statement:
     | TOKEN_IDENTIFIER '(' arg_list_opt ')' ';' {
         $$ = create_call_node($1, $3, @1.first_line);
         free($1);
+    }
+    /* Metodo de un arreglo como sentencia    lista.agregar(valor); */
+    | TOKEN_IDENTIFIER '.' TOKEN_IDENTIFIER '(' arg_list_opt ')' ';' {
+        $$ = create_array_call_node($1, $3, $5, @1.first_line);
+        free($1);
+        free($3);
     }
     /* Retorno de una funcion                  retornar expresion; */
     | TOKEN_RETORNAR expression ';' {
@@ -289,6 +303,18 @@ expression:
     | TOKEN_IDENTIFIER '(' arg_list_opt ')' {
         $$ = create_call_node($1, $3, @1.first_line);
         free($1);
+    }
+    | TOKEN_IDENTIFIER '[' expression ']' {
+        $$ = create_index_node($1, $3, @1.first_line);
+        free($1);
+    }
+    | TOKEN_IDENTIFIER '.' TOKEN_IDENTIFIER '(' arg_list_opt ')' {
+        $$ = create_array_call_node($1, $3, $5, @1.first_line);
+        free($1);
+        free($3);
+    }
+    | '[' arg_list_opt ']' {
+        $$ = create_array_node($2, @1.first_line);
     }
     | '(' expression ')' {
         $$ = $2;

@@ -1,0 +1,60 @@
+// Arreglos en Dapson
+// tipo[]  ->  entero[]  decimal[]  texto[]  caracter[]  booleano[]
+
+// 1. crear arreglos con valores
+sea numeros: entero[] = [10, 20, 30];
+sea nombres: texto[] = ["Ana", "Luis", "Jay"];
+imprimir numeros;
+imprimir nombres;
+
+// 2. leer un elemento (la primera posicion es la 0)
+imprimir numeros[0];
+sea i: entero = 2;
+imprimir nombres[i];
+
+// 3. largo, agregar y quitar
+imprimir numeros.largo();
+numeros.agregar(40);
+imprimir numeros;
+sea ultimo: entero = numeros.quitar();
+imprimir ultimo;
+imprimir numeros.largo();
+
+// 4. arreglo vacio, y un entero cabe en un decimal
+sea notas: decimal[] = [];
+notas.agregar(9.5);
+notas.agregar(10);
+imprimir notas;
+
+// 5. el ultimo elemento
+imprimir numeros[numeros.largo() - 1];
+
+// 6. dentro de un si
+si numeros.largo() > 2: {
+  imprimir "hay mas de dos";
+} sino {
+  imprimir "hay dos o menos";
+}
+
+// 7. en funciones: como parametro y como retorno
+funcion primero(lista: entero[]): entero {
+  retornar lista[0];
+}
+funcion crear(): entero[] {
+  retornar [1, 2, 3];
+}
+imprimir primero(numeros);
+sea otros: entero[] = crear();
+imprimir otros;
+
+// 8. un arreglo se comparte: la funcion modifica el mismo arreglo
+funcion agregarDos(lista: entero[]) {
+  lista.agregar(98);
+  lista.agregar(99);
+}
+agregarDos(otros);
+imprimir otros;
+
+// 9. volver a asignar un arreglo
+otros = [7, 8];
+imprimir otros;

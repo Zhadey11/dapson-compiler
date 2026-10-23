@@ -1,211 +1,12 @@
 #include "ast.h"
+#include "ast_internal.h"
 #include "string_utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* ------------------------------------------------------------------ */
-/* Construccion de nodos                                               */
-/* ------------------------------------------------------------------ */
-
-static void out_of_memory(void) {
-  fprintf(stderr, "Sin memoria\n");
-  exit(EXIT_FAILURE);
-}
-
-static ASTNode *new_node(NodeType type, int line) {
-  ASTNode *node = calloc(1, sizeof(*node));
-  if (node == NULL) {
-    out_of_memory();
-  }
-  node->type = type;
-  node->exprType = TYPE_UNKNOWN;
-  node->line = line;
-  return node;
-}
-
-static char *copy_or_die(const char *value) {
-  char *copy = string_copy(value);
-  if (copy == NULL) {
-    out_of_memory();
-  }
-  return copy;
-}
-
-ASTNode *create_int_node(long long val, int line) {
-  ASTNode *node = new_node(NODE_INT, line);
-  node->data.intValue = val;
-  return node;
-}
-
-ASTNode *create_decimal_node(double val, int line) {
-  ASTNode *node = new_node(NODE_DECIMAL, line);
-  node->data.decimalValue = val;
-  return node;
-}
-
-ASTNode *create_text_node(const char *val, int line) {
-  ASTNode *node = new_node(NODE_TEXT, line);
-  node->data.strValue = copy_or_die(val);
-  return node;
-}
-
-ASTNode *create_char_node(char val, int line) {
-  ASTNode *node = new_node(NODE_CHAR, line);
-  node->data.charValue = val;
-  return node;
-}
-
-ASTNode *create_bool_node(int val, int line) {
-  ASTNode *node = new_node(NODE_BOOL, line);
-  node->data.boolValue = val;
-  return node;
-}
-
-ASTNode *create_identifier_node(const char *name, int line) {
-  ASTNode *node = new_node(NODE_IDENT, line);
-  node->data.identifier = copy_or_die(name);
-  return node;
-}
-
-ASTNode *create_binary_node(Operator op, ASTNode *left, ASTNode *right,
-                            int line) {
-  ASTNode *node = new_node(NODE_BINARY, line);
-  node->data.binary.op = op;
-  node->data.binary.left = left;
-  node->data.binary.right = right;
-  return node;
-}
-
-ASTNode *create_unary_node(Operator op, ASTNode *operand, int line) {
-  ASTNode *node = new_node(NODE_UNARY, line);
-  node->data.binary.op = op;
-  node->data.binary.left = operand;
-  node->data.binary.right = NULL;
-  return node;
-}
-
-ASTNode *create_decl_node(NodeType kind, const char *name, DataType type,
-                          ASTNode *init, int line) {
-  ASTNode *node = new_node(kind, line);
-  node->exprType = type; /* el tipo declarado */
-  node->data.decl.name = copy_or_die(name);
-  node->data.decl.init = init;
-  return node;
-}
-
-ASTNode *create_assign_node(const char *name, ASTNode *value, int line) {
-  ASTNode *node = new_node(NODE_ASSIGN, line);
-  node->data.assign.name = copy_or_die(name);
-  node->data.assign.value = value;
-  return node;
-}
-
-ASTNode *create_print_node(ASTNode *value, int line) {
-  ASTNode *node = new_node(NODE_PRINT, line);
-  node->data.print.value = value;
-  return node;
-}
-
-ASTNode *create_func_node(const char *name, ASTNode *params, DataType ret_type,
-                          ASTNode *body, int line) {
-  ASTNode *node = new_node(NODE_FUNC_DECL, line);
-  node->exprType = ret_type; /* el tipo que devuelve la funcion */
-  node->data.func.name = copy_or_die(name);
-  node->data.func.params = params;
-  node->data.func.body = body;
-  return node;
-}
-
-ASTNode *create_param_node(const char *name, DataType type, int line) {
-  ASTNode *node = new_node(NODE_PARAM, line);
-  node->exprType = type;
-  node->data.decl.name = copy_or_die(name);
-  node->data.decl.init = NULL;
-  return node;
-}
-
-ASTNode *create_call_node(const char *name, ASTNode *args, int line) {
-  ASTNode *node = new_node(NODE_CALL, line);
-  node->data.call.name = copy_or_die(name);
-  node->data.call.args = args;
-  return node;
-}
-
-ASTNode *create_return_node(ASTNode *value, int line) {
-  ASTNode *node = new_node(NODE_RETURN, line);
-  node->data.ret.value = value;
-  return node;
-}
-
-ASTNode *create_block_node(ASTNode *body, int line) {
-  ASTNode *node = new_node(NODE_BLOCK, line);
-  node->data.block.body = body;
-  node->data.block.is_else = 0;
-  return node;
-}
-
-ASTNode *create_if_node(ASTNode *cond, ASTNode *then_block,
-                        ASTNode *else_block, int line) {
-  ASTNode *node = new_node(NODE_IF, line);
-  node->data.if_stmt.cond = cond;
-  node->data.if_stmt.then_block = then_block;
-  node->data.if_stmt.else_block = else_block;
-  return node;
-}
-
-int ast_list_length(const ASTNode *list) {
-  int count = 0;
-  for (; list != NULL; list = list->next) {
-    count++;
-  }
-  return count;
-}
-
-/* ------------------------------------------------------------------ */
-/* Nombres                                                             */
-/* ------------------------------------------------------------------ */
-
-DataType parse_type_name(const char *name) {
-  if (strcmp(name, "entero") == 0) return TYPE_ENTERO;
-  if (strcmp(name, "decimal") == 0) return TYPE_DECIMAL;
-  if (strcmp(name, "texto") == 0) return TYPE_TEXTO;
-  if (strcmp(name, "caracter") == 0) return TYPE_CARACTER;
-  if (strcmp(name, "booleano") == 0) return TYPE_BOOLEANO;
-  return TYPE_UNKNOWN;
-}
-
-const char *type_name(DataType type) {
-  switch (type) {
-  case TYPE_ENTERO: return "entero";
-  case TYPE_DECIMAL: return "decimal";
-  case TYPE_TEXTO: return "texto";
-  case TYPE_CARACTER: return "caracter";
-  case TYPE_BOOLEANO: return "booleano";
-  case TYPE_NADA: return "nada";
-  case TYPE_UNKNOWN: break;
-  }
-  return "desconocido";
-}
-
-const char *operator_symbol(Operator op) {
-  switch (op) {
-  case OP_ADD: return "+";
-  case OP_SUB: return "-";
-  case OP_MUL: return "*";
-  case OP_DIV: return "/";
-  case OP_EQ: return "==";
-  case OP_NE: return "!=";
-  case OP_GT: return ">";
-  case OP_LT: return "<";
-  case OP_GE: return ">=";
-  case OP_LE: return "<=";
-  case OP_OR: return "||";
-  case OP_NEG: return "-";
-  }
-  return "?";
-}
+/* Impresion del arbol y de la tabla del AST (modo -d) */
 
 static const char *node_kind(const ASTNode *node) {
   switch (node->type) {
@@ -227,6 +28,9 @@ static const char *node_kind(const ASTNode *node) {
   case NODE_RETURN: return "Retornar";
   case NODE_IF: return "Si (condicional)";
   case NODE_BLOCK: return "Bloque";
+  case NODE_ARRAY: return "Literal arreglo";
+  case NODE_INDEX: return "Acceso a arreglo";
+  case NODE_ARRAY_CALL: return "Metodo de arreglo";
   }
   return "?";
 }
@@ -294,6 +98,15 @@ static void node_detail(const ASTNode *node, char *out, size_t size) {
   case NODE_IDENT:
     snprintf(out, size, "%s", node->data.identifier);
     break;
+  case NODE_INDEX:
+    snprintf(out, size, "%s", node->data.index.name);
+    break;
+  case NODE_ARRAY_CALL:
+    snprintf(out, size, "%s.%s", node->data.array_call.name,
+             node->data.array_call.method_name);
+    break;
+  case NODE_ARRAY:
+    break;
   case NODE_BINARY:
   case NODE_UNARY:
     snprintf(out, size, "%s", operator_symbol(node->data.binary.op));
@@ -337,6 +150,12 @@ static const ASTNode *node_child(const ASTNode *node, int index) {
     return NULL;
   case NODE_BLOCK:
     return list_nth(node->data.block.body, index);
+  case NODE_ARRAY:
+    return list_nth(node->data.array.elements, index);
+  case NODE_INDEX:
+    return index == 0 ? node->data.index.index : NULL;
+  case NODE_ARRAY_CALL:
+    return list_nth(node->data.array_call.args, index);
   case NODE_FUNC_DECL: {
     /* primero los parametros, despues las sentencias del cuerpo */
     int params = ast_list_length(node->data.func.params);
@@ -409,7 +228,7 @@ static void add_row(AstRows *list, const ASTNode *node, int parent) {
     list->capacity = list->capacity == 0 ? 32 : list->capacity * 2;
     list->rows = realloc(list->rows, (size_t)list->capacity * sizeof(AstRow));
     if (list->rows == NULL) {
-      out_of_memory();
+      ast_out_of_memory();
     }
   }
 
@@ -434,7 +253,7 @@ void print_ast_table(const ASTNode *root) {
   /* Fila 1: la raiz "Programa" */
   list.rows = malloc(32 * sizeof(AstRow));
   if (list.rows == NULL) {
-    out_of_memory();
+    ast_out_of_memory();
   }
   list.capacity = 32;
   list.rows[0] = (AstRow){1, 0, 0, "Programa", "", "-"};
@@ -495,71 +314,4 @@ void print_ast_table(const ASTNode *root) {
   table_print_rule(widths, 6);
 
   free(list.rows);
-}
-
-/* ------------------------------------------------------------------ */
-/* Liberacion de memoria                                               */
-/* ------------------------------------------------------------------ */
-
-void free_ast(ASTNode *node) {
-  while (node != NULL) {
-    ASTNode *next_node = node->next;
-
-    switch (node->type) {
-    case NODE_VAR_DECL:
-    case NODE_CONST_DECL:
-      free(node->data.decl.name);
-      free_ast(node->data.decl.init);
-      break;
-    case NODE_ASSIGN:
-      free(node->data.assign.name);
-      free_ast(node->data.assign.value);
-      break;
-    case NODE_PRINT:
-      free_ast(node->data.print.value);
-      break;
-    case NODE_FUNC_DECL:
-      free(node->data.func.name);
-      free_ast(node->data.func.params);
-      free_ast(node->data.func.body);
-      break;
-    case NODE_PARAM:
-      free(node->data.decl.name);
-      break;
-    case NODE_CALL:
-      free(node->data.call.name);
-      free_ast(node->data.call.args);
-      break;
-    case NODE_RETURN:
-      free_ast(node->data.ret.value);
-      break;
-    case NODE_IF:
-      free_ast(node->data.if_stmt.cond);
-      free_ast(node->data.if_stmt.then_block);
-      free_ast(node->data.if_stmt.else_block);
-      break;
-    case NODE_BLOCK:
-      free_ast(node->data.block.body);
-      break;
-    case NODE_TEXT:
-      free(node->data.strValue);
-      break;
-    case NODE_IDENT:
-      free(node->data.identifier);
-      break;
-    case NODE_BINARY:
-    case NODE_UNARY:
-      free_ast(node->data.binary.left);
-      free_ast(node->data.binary.right);
-      break;
-    case NODE_INT:
-    case NODE_DECIMAL:
-    case NODE_CHAR:
-    case NODE_BOOL:
-      break;
-    }
-
-    free(node);
-    node = next_node;
-  }
 }

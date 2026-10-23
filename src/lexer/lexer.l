@@ -36,7 +36,7 @@
 "<"                           { return TOKEN_LT; }
 "||"                          { return TOKEN_OR; }
 "es"                          { return TOKEN_EQ; }
-"no"[ \t\r\n]+"es"            { return TOKEN_NE; }
+"no"[ \t\r\n]+"es"             { return TOKEN_NE; }
 "mayor"                       { return TOKEN_GT; }
 "menor"                       { return TOKEN_LT; }
 "o"                           { return TOKEN_OR; }
@@ -49,7 +49,7 @@
 "verdadero"                   { yylval.bool_val = 1; return TOKEN_BOOL_LITERAL; }
 "falso"                       { yylval.bool_val = 0; return TOKEN_BOOL_LITERAL; }
 
-[:=;,+\-*/(){}]               { return yytext[0]; }
+[:=;,.+\-*/(){}\[\]]          { return yytext[0]; }
 
 \"([^\\\"\n]|\\.)*\"          {
                                 yytext[yyleng - 1] = '\0';   /* quita la comilla final */
