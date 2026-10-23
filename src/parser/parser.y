@@ -49,6 +49,8 @@ static ASTNode *append_node(ASTNode *list, ASTNode *node) {
 %token TOKEN_NADA "nada"
 %token TOKEN_SI "si"
 %token TOKEN_SINO "sino"
+%token TOKEN_MOVER "mover"                  /* NUEVO */
+%token TOKEN_HACIA "hacia"                  /* NUEVO */
 %token TOKEN_EQ "== (es)"
 %token TOKEN_NE "!= (no es)"
 %token TOKEN_GT "> (mayor)"
@@ -56,6 +58,8 @@ static ASTNode *append_node(ASTNode *list, ASTNode *node) {
 %token TOKEN_GE ">="
 %token TOKEN_LE "<="
 %token TOKEN_OR "|| (o)"
+%token <int_val> TOKEN_PIECE "pieza"        /* NUEVO */
+%token <int_val> TOKEN_SQUARE "casilla"     /* NUEVO */
 %token <str_val> TOKEN_TYPE "tipo de dato"
 %token <str_val> TOKEN_IDENTIFIER "identificador"
 %token <str_val> TOKEN_STRING_LITERAL "texto"
@@ -230,6 +234,10 @@ statement:
     /* Condicional                            si condicion: { ... } sino { ... } */
     | if_statement {
         $$ = $1;
+    }
+    /* NUEVO: mover una pieza de ajedrez       mover peon_b5 hacia e4; */
+    | TOKEN_MOVER TOKEN_PIECE TOKEN_HACIA TOKEN_SQUARE ';' {
+        $$ = create_move_node((int)$2, (int)$4, @1.first_line);
     }
     /* Recuperacion de errores: se salta hasta el proximo ';' */
     | error ';' {

@@ -11,9 +11,10 @@ LDFLAGS   :=
 
 TARGET    := dapson
 
-# Todos los .c de src/ y de sus carpetas (ast, lexer, parser, semantic, runtime)
+# Todos los .c de src/ y de sus carpetas (ast, chess, lexer, parser, semantic, runtime)
 SOURCES   := $(wildcard $(SRC_DIR)/*.c \
                         $(SRC_DIR)/ast/*.c \
+                        $(SRC_DIR)/chess/*.c \
                         $(SRC_DIR)/lexer/*.c \
                         $(SRC_DIR)/parser/*.c \
                         $(SRC_DIR)/semantic/*.c \
@@ -31,7 +32,7 @@ LEX_C     := $(BUILD_DIR)/lex.yy.c
 
 OBJS      += $(BUILD_DIR)/parser.tab.o $(BUILD_DIR)/lex.yy.o
 
-.PHONY: all clean run debug errores funciones errores-funciones condicionales errores-si arreglos errores-arreglos
+.PHONY: all clean run debug errores funciones errores-funciones condicionales errores-si arreglos errores-arreglos ajedrez errores-ajedrez
 
 all: $(TARGET)
 
@@ -95,6 +96,14 @@ arreglos: $(TARGET)
 # make errores-arreglos -> errores semanticos de arreglos a proposito
 errores-arreglos: $(TARGET)
 	./$(TARGET) $(EX_DIR)/errores_arreglos.dap
+
+# make ajedrez -> una partida de ejemplo (NUEVO)
+ajedrez: $(TARGET)
+	./$(TARGET) $(EX_DIR)/partida.dap
+
+# make errores-ajedrez -> una jugada ilegal a proposito (NUEVO)
+errores-ajedrez: $(TARGET)
+	./$(TARGET) $(EX_DIR)/errores_ajedrez.dap
 
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)

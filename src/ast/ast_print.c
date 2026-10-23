@@ -1,5 +1,6 @@
 #include "ast.h"
 #include "ast_internal.h"
+#include "chess.h" /* NUEVO */
 #include "string_utils.h"
 
 #include <stdio.h>
@@ -31,6 +32,7 @@ static const char *node_kind(const ASTNode *node) {
   case NODE_ARRAY: return "Literal arreglo";
   case NODE_INDEX: return "Acceso a arreglo";
   case NODE_ARRAY_CALL: return "Metodo de arreglo";
+  case NODE_MOVE: return "Mover pieza"; /* NUEVO */
   }
   return "?";
 }
@@ -107,6 +109,13 @@ static void node_detail(const ASTNode *node, char *out, size_t size) {
     break;
   case NODE_ARRAY:
     break;
+  case NODE_MOVE: { /* NUEVO: se muestra como  peon_b5 -> e4 */
+    char square[3];
+    chess_square_name(node->data.move.square, square);
+    snprintf(out, size, "%s -> %s", chess_piece_name(node->data.move.piece),
+             square);
+    break;
+  }
   case NODE_BINARY:
   case NODE_UNARY:
     snprintf(out, size, "%s", operator_symbol(node->data.binary.op));

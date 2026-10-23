@@ -71,6 +71,7 @@ void free_ast(ASTNode *node) {
     case NODE_DECIMAL:
     case NODE_CHAR:
     case NODE_BOOL:
+    case NODE_MOVE: /* NUEVO: solo guarda dos numeros, no hay nada que liberar */
       break;
     }
 

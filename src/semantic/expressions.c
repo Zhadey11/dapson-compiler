@@ -149,6 +149,7 @@ DataType semantic_analyze_expression(ASTNode *node, Scope *scope) {
   case NODE_RETURN:
   case NODE_IF:
   case NODE_BLOCK:
+  case NODE_MOVE: /* NUEVO */
     break;
   }
 

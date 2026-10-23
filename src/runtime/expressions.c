@@ -152,6 +152,7 @@ int runtime_evaluate(const ASTNode *node, Frame *frame, Value *out) {
   case NODE_RETURN:
   case NODE_IF:
   case NODE_BLOCK:
+  case NODE_MOVE: /* NUEVO: mover es una sentencia, no una expresion */
     break;
   }
   return runtime_error(node->line, "expresion invalida");

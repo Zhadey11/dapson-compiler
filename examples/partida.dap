@@ -1,0 +1,11 @@
+// Una partida de ajedrez en Dapson: el mate del pastor
+// Las blancas son _b y las negras son _n. Las blancas siempre empiezan.
+
+mover peon_b5 hacia e4;      // 1. e4
+mover peon_n5 hacia e5;      //    e5
+mover alfil_b2 hacia c4;     // 2. Ac4
+mover caballo_n1 hacia c6;   //    Cc6
+mover reina_b hacia h5;      // 3. Dh5
+mover caballo_n2 hacia f6;   //    Cf6
+mover reina_b hacia f7;      // 4. Dxf7 (captura un peon)
+imprimir "fin de la partida";

@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-/* Ejecucion de sentencias: declarar, asignar, imprimir, si y retornar */
+/* Ejecucion de sentencias: declarar, asignar, imprimir, si, mover y retornar */
 
 /* Ejecuta una lista de sentencias; se detiene si una ejecuta 'retornar' */
 int runtime_execute_list(const ASTNode *list, Frame *frame) {
@@ -75,6 +75,11 @@ int runtime_execute_list(const ASTNode *list, Frame *frame) {
       }
       break;
     }
+    case NODE_MOVE: /* NUEVO: mover peon_b5 hacia e4; */
+      if (!runtime_execute_move(node)) {
+        return 0;
+      }
+      break;
     case NODE_RETURN:
       if (node->data.ret.value != NULL) {
         if (!runtime_evaluate(node->data.ret.value, frame, &frame->ret)) {

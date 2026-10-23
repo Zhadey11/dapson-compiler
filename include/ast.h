@@ -54,7 +54,8 @@ typedef enum {
   NODE_BLOCK,     /* las sentencias entre { } de un si o un sino */
   NODE_ARRAY,     /* [10, 20, 30]                */
   NODE_INDEX,     /* lista[i]                    */
-  NODE_ARRAY_CALL /* lista.agregar(x)  lista.quitar()  lista.largo() */
+  NODE_ARRAY_CALL, /* lista.agregar(x)  lista.quitar()  lista.largo() */
+  NODE_MOVE        /* mover peon_b5 hacia e4;     (NUEVO) */
 } NodeType;
 
 /* Los metodos de un arreglo */
@@ -126,6 +127,10 @@ typedef struct ASTNode {
       ArrayMethod method;
       struct ASTNode *args;    /* lista de expresiones (enlazada con next) */
     } array_call;
+    struct {
+      int piece;  /* 0..31, ver chess.h */
+      int square; /* 0..63, ver chess.h */
+    } move;       /* NUEVO */
   } data;
 
   struct ASTNode *next; /* lista enlazada de sentencias */
@@ -157,6 +162,8 @@ ASTNode *create_array_node(ASTNode *elements, int line);
 ASTNode *create_index_node(const char *name, ASTNode *index, int line);
 ASTNode *create_array_call_node(const char *name, const char *method_name,
                                 ASTNode *args, int line);
+
+ASTNode *create_move_node(int piece, int square, int line); /* NUEVO */
 
 int ast_list_length(const ASTNode *list); /* cuenta nodos enlazados con next */
 

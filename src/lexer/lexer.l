@@ -3,6 +3,7 @@
 #include "parser.tab.h"
 #include "string_utils.h"
 #include "lexer.h"
+#include "chess.h"          /* NUEVO */
 #include <string.h>
 #include <stdlib.h>
 
@@ -27,6 +28,8 @@
 "nada"                        { return TOKEN_NADA; }
 "si"                          { return TOKEN_SI; }
 "sino"                        { return TOKEN_SINO; }
+"mover"                       { return TOKEN_MOVER; }   /* NUEVO */
+"hacia"                       { return TOKEN_HACIA; }   /* NUEVO */
 
 "=="                          { return TOKEN_EQ; }
 "!="                          { return TOKEN_NE; }
@@ -48,6 +51,12 @@
 
 "verdadero"                   { yylval.bool_val = 1; return TOKEN_BOOL_LITERAL; }
 "falso"                       { yylval.bool_val = 0; return TOKEN_BOOL_LITERAL; }
+
+(peon_[bn][1-8])|((torre|caballo|alfil)_[bn][12])|((reina|rey)_[bn]) {
+                                yylval.int_val = chess_piece_from_name(yytext);
+                                return TOKEN_PIECE;
+                              }
+[a-h][1-8]                    { yylval.int_val = chess_square_from_name(yytext); return TOKEN_SQUARE; }
 
 [:=;,.+\-*/(){}\[\]]          { return yytext[0]; }
 

@@ -36,6 +36,8 @@ Esto crea el ejecutable `dapson` en la raíz del proyecto. Para borrar lo compil
 | `make errores-si` | Errores de condicionales a propósito |
 | `make arreglos` | Ejemplo con arreglos |
 | `make errores-arreglos` | Errores de arreglos a propósito |
+| `make ajedrez` | Una partida de ajedrez de ejemplo |
+| `make errores-ajedrez` | Una jugada ilegal a propósito |
 
 ## Reglas del lenguaje
 
@@ -58,15 +60,36 @@ Esto crea el ejecutable `dapson` en la raíz del proyecto. Para borrar lo compil
 | Agregar al final | `lista.agregar(x);` |
 | Quitar el último | `lista.quitar()` (devuelve el elemento) |
 | Cantidad | `lista.largo()` |
+| Mover una pieza | `mover peon_b5 hacia e4;` |
+
+## Ajedrez
+
+Las piezas blancas terminan en `_b` y las negras en `_n`. Las blancas siempre empiezan.
+
+| Pieza | Nombres |
+|---|---|
+| Peones | `peon_b1` … `peon_b8`, `peon_n1` … `peon_n8` |
+| Torres | `torre_b1`, `torre_b2`, `torre_n1`, `torre_n2` |
+| Caballos | `caballo_b1`, `caballo_b2`, `caballo_n1`, `caballo_n2` |
+| Alfiles | `alfil_b1`, `alfil_b2`, `alfil_n1`, `alfil_n2` |
+| Reinas | `reina_b`, `reina_n` |
+| Reyes | `rey_b`, `rey_n` |
+
+Las casillas van de `a1` a `h8`. Los nombres de las piezas, las casillas y las palabras `mover` y `hacia` no se pueden usar como nombres de variable.
+
+Cada `mover` se valida al ejecutar: que la pieza siga viva, que sea su turno, que el movimiento sea el de esa pieza, que no haya piezas en el camino y que no caiga sobre una pieza propia. Una jugada ilegal detiene el programa con un error.
+
+Todavía no incluye: jaque, enroque, peón al paso ni coronación.
 
 ## Carpetas
 
 ```
-include/     encabezados públicos (.h)
-src/ast/     árbol sintáctico
-src/lexer/   análisis léxico (Flex)
-src/parser/  análisis sintáctico (Bison)
-src/semantic/ análisis semántico
-src/runtime/ ejecución
-examples/    programas de ejemplo
+include/        encabezados públicos (.h)
+src/ast/        árbol sintáctico
+src/chess/      tablero y reglas del ajedrez
+src/lexer/      análisis léxico (Flex)
+src/parser/     análisis sintáctico (Bison)
+src/semantic/   análisis semántico
+src/runtime/    ejecución
+examples/       programas de ejemplo
 ```

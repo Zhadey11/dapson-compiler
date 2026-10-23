@@ -185,6 +185,14 @@ ASTNode *create_array_call_node(const char *name, const char *method_name,
   return node;
 }
 
+/* NUEVO: mover peon_b5 hacia e4;  (la pieza y la casilla ya son numeros) */
+ASTNode *create_move_node(int piece, int square, int line) {
+  ASTNode *node = new_node(NODE_MOVE, line);
+  node->data.move.piece = piece;
+  node->data.move.square = square;
+  return node;
+}
+
 int ast_list_length(const ASTNode *list) {
   int count = 0;
   for (; list != NULL; list = list->next) {

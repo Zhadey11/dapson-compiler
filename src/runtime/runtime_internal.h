@@ -40,6 +40,9 @@ int runtime_execute_list(const ASTNode *list, Frame *frame);
 /* functions.c */
 int runtime_call_function(const ASTNode *node, Frame *frame, Value *out);
 
+/* moves.c */
+int runtime_execute_move(const ASTNode *node); /* NUEVO */
+
 /* arrays.c */
 int runtime_evaluate_array(const ASTNode *node, Frame *frame, Value *out);
 int runtime_evaluate_index(const ASTNode *node, Frame *frame, Value *out);

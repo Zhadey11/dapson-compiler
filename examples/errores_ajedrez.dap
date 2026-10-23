@@ -1,0 +1,6 @@
+// Una jugada ilegal, a proposito: el caballo no se mueve en linea recta
+
+mover peon_b5 hacia e4;
+mover peon_n5 hacia e5;
+mover caballo_b1 hacia b3;   // error: el caballo se mueve en L
+imprimir "esto ya no se ejecuta";
